@@ -1,0 +1,59 @@
+{
+  "layout": {
+    "rows": 2,
+    "columns": 3,
+    "button_spacing": 10,
+    "background_color": "#2E3440",
+    "fullscreen": true
+  },
+  "buttons": [
+    {
+      "name": "Terminal",
+      "icon": "icons/terminal.png",
+      "command": "lxterminal",
+      "color": "#88C0D0",
+      "text_color": "#ECEFF4",
+      "position": [0, 0]
+    },
+    {
+      "name": "Web Browser",
+      "icon": "icons/browser.png",
+      "command": "chromium-browser",
+      "color": "#5E81AC",
+      "text_color": "#ECEFF4",
+      "position": [0, 1]
+    },
+    {
+      "name": "File Manager",
+      "icon": "icons/files.png",
+      "command": "pcmanfm",
+      "color": "#A3BE8C",
+      "text_color": "#2E3440",
+      "position": [0, 2]
+    },
+    {
+      "name": "System Monitor",
+      "icon": "icons/monitor.png",
+      "command": "lxtask",
+      "color": "#B48EAD",
+      "text_color": "#ECEFF4",
+      "position": [1, 0]
+    },
+    {
+      "name": "Reboot",
+      "icon": "icons/reboot.png",
+      "command": "sudo reboot",
+      "color": "#BF616A",
+      "text_color": "#ECEFF4",
+      "position": [1, 1]
+    },
+    {
+      "name": "Shutdown",
+      "icon": "icons/shutdown.png",
+      "command": "sudo shutdown -h now",
+      "color": "#D08770",
+      "text_color": "#2E3440",
+      "position": [1, 2]
+    }
+  ]
+} 
