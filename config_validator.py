@@ -5,11 +5,24 @@ import sys
 import re
 
 class ConfigValidator:
-    def __init__(self, config_path='config.json'):
-        self.config_path = config_path
+    def __init__(self, config_path=None):
+        if config_path is None:
+            # If running from installed location, use that path
+            if os.path.exists('/opt/desk-controller/config.json'):
+                self.config_path = '/opt/desk-controller/config.json'
+            else:
+                # Otherwise use the current directory (for development)
+                self.config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+        else:
+            self.config_path = config_path
+            
         self.errors = []
         self.warnings = []
     
+    def validate_config(self):
+        """Validate the configuration file"""
+        return self.validate()
+        
     def validate(self):
         """Validate the configuration file"""
         # Check if config file exists
@@ -41,6 +54,10 @@ class ConfigValidator:
         
         # Validate layout
         self._validate_layout(config['layout'])
+        
+        # Validate display configuration if present
+        if 'display' in config:
+            self._validate_display(config['display'])
         
         # Validate buttons
         self._validate_buttons(config['buttons'], config['layout'])
@@ -74,6 +91,33 @@ class ConfigValidator:
         
         if 'fullscreen' in layout and not isinstance(layout['fullscreen'], bool):
             self.errors.append("'fullscreen' must be a boolean")
+            
+        if 'hide_cursor' in layout and not isinstance(layout['hide_cursor'], bool):
+            self.errors.append("'hide_cursor' must be a boolean")
+    
+    def _validate_display(self, display):
+        """Validate the display configuration section"""
+        if not isinstance(display, dict):
+            self.errors.append("'display' must be a JSON object")
+            return
+        
+        # Check mode field
+        if 'mode' in display:
+            valid_modes = ['mirror', 'extend', 'single']
+            if display['mode'] not in valid_modes:
+                self.errors.append(f"'mode' must be one of: {', '.join(valid_modes)}")
+        
+        # Check primary_display field
+        if 'primary_display' in display and not isinstance(display['primary_display'], str):
+            self.errors.append("'primary_display' must be a string")
+        
+        # Check kiosk_mode field
+        if 'kiosk_mode' in display and not isinstance(display['kiosk_mode'], bool):
+            self.errors.append("'kiosk_mode' must be a boolean")
+        
+        # Check auto_start field
+        if 'auto_start' in display and not isinstance(display['auto_start'], bool):
+            self.errors.append("'auto_start' must be a boolean")
     
     def _validate_buttons(self, buttons, layout):
         """Validate the buttons section"""
@@ -124,6 +168,11 @@ class ConfigValidator:
             # Check icon
             if 'icon' in button and button['icon']:
                 icon_path = button['icon']
+                # Handle relative paths
+                if not os.path.isabs(icon_path):
+                    base_dir = os.path.dirname(self.config_path)
+                    icon_path = os.path.join(base_dir, icon_path)
+                
                 if not os.path.exists(icon_path):
                     self.warnings.append(f"Icon file '{icon_path}' for button '{button.get('name', i+1)}' not found")
             

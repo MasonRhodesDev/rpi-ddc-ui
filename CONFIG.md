@@ -54,10 +54,25 @@ Each button in the `buttons` array supports the following options:
 |--------|------|---------|-------------|
 | `name` | String | "Button" | The text displayed on the button |
 | `icon` | String | "" | Path to the icon image (relative to the application directory) |
-| `command` | String | "" | The command to execute when the button is clicked |
+| `command` | String | "" | The command to execute when the button is clicked. Can use `@/script.sh` format to reference scripts in the `scripts/` directory |
 | `color` | String | "#88C0D0" | Background color of the button (hex format) |
 | `text_color` | String | "#ECEFF4" | Text color of the button (hex format) |
 | `position` | Array | [0, 0] | Position of the button in the grid as [row, column] |
+
+## Custom Scripts
+
+You can include custom scripts with your application by placing them in the `scripts/` directory and referencing them with the `@/` prefix in your button commands.
+
+For example:
+```json
+{
+  "name": "Custom Script",
+  "icon": "icons/script.png",
+  "command": "@/hello.sh"
+}
+```
+
+This will execute the script at `scripts/hello.sh` relative to the application directory. All scripts in the `scripts/` directory will be copied to the installation location during installation.
 
 ## Command Examples
 

@@ -76,12 +76,28 @@ Edit the `config.json` file to configure your buttons. Example configuration:
       "name": "Web Browser",
       "icon": "icons/browser.png",
       "command": "chromium-browser"
+    },
+    {
+      "name": "Custom Script",
+      "icon": "icons/script.png",
+      "command": "@/hello.sh"
     }
   ]
 }
 ```
 
 For detailed configuration options, see the [CONFIG.md](CONFIG.md) file.
+
+## Custom Scripts
+
+You can include custom scripts with your application by placing them in the `scripts/` directory and referencing them with the `@/` prefix in your button commands.
+
+For example:
+```
+"command": "@/hello.sh"
+```
+
+This will execute the script at `scripts/hello.sh` relative to the application directory. All scripts in the `scripts/` directory will be copied to the installation location during installation.
 
 ## Auto-start on boot
 
