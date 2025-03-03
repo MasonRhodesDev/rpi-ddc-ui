@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# .xsession file for desk-controller kiosk mode
+
+# Wait for X server to be fully initialized
+sleep 2
+
+# Set display settings
+xset -dpms          # Disable DPMS (Energy Star) features
+xset s off          # Disable screen saver
+xset s noblank      # Don't blank the screen
+
+# Set background color
+xsetroot -solid "#2E3440"
+
+# Hide cursor after 5 seconds of inactivity
+if command -v unclutter &> /dev/null; then
+    unclutter -idle 5 &
+fi
+
+# Start the desk controller application
+cd /opt/desk-controller
+/opt/desk-controller/venv/bin/python /opt/desk-controller/main.py --fullscreen
+
+# If the application exits, wait a bit and restart X
+sleep 5
+exit 0 

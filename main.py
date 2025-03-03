@@ -11,7 +11,10 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QGridLayout,
 from PyQt5.QtGui import QIcon, QColor, QPalette, QFont
 from PyQt5.QtCore import Qt, QSize
 
+# Import ConfigValidator from setup directory
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'setup'))
 from config_validator import ConfigValidator
+from system_check import is_raspberry_pi, is_dsi_display_connected
 
 class DeskController(QMainWindow):
     def __init__(self, kiosk_mode=False):
@@ -376,13 +379,21 @@ class DeskController(QMainWindow):
 
 def main():
     try:
+        # Check if running on a Raspberry Pi
+        if not is_raspberry_pi():
+            print("Error: This application is designed to run on a Raspberry Pi.")
+            print("Current system is not detected as a Raspberry Pi.")
+            sys.exit(1)
+        
+        # DSI display check removed
+        
         # Validate configuration before starting
         validator = ConfigValidator()
         if not validator.validate_config():
             print("Configuration validation failed. Please check your config.json file.")
             validator.print_report()
             sys.exit(1)
-            
+        
         # Create application
         app = QApplication(sys.argv)
         
