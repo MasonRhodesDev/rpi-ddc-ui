@@ -10,6 +10,7 @@ fi
 SERVICE_USER="deskcontroller"
 APP_DIR="/opt/desk-controller"
 CONFIG_FILE="$APP_DIR/config.json"
+SCRIPTS_DIR="$APP_DIR/scripts"
 SUDOERS_FILE="/etc/sudoers.d/deskcontroller"
 
 echo "Updating permissions for $SERVICE_USER based on config..."
@@ -41,6 +42,27 @@ $SERVICE_USER ALL=(ALL) NOPASSWD: /sbin/poweroff
 $SERVICE_USER ALL=(ALL) NOPASSWD: /sbin/halt
 $SERVICE_USER ALL=(ALL) NOPASSWD: /sbin/shutdown -h now
 EOL
+
+# Scan scripts directory for commands that need sudo privileges
+echo "Scanning scripts directory for commands that need sudo privileges..."
+SUDO_COMMANDS=$($APP_DIR/venv/bin/python3 -c "
+import sys
+sys.path.append('$APP_DIR/setup')
+from system_check import scan_scripts_for_sudo_commands, generate_sudoers_entry
+commands = scan_scripts_for_sudo_commands('$SCRIPTS_DIR', '$CONFIG_FILE')
+if commands:
+    print(generate_sudoers_entry('$SERVICE_USER', commands))
+")
+
+# Add the sudo commands to the sudoers file if any were found
+if [ ! -z "$SUDO_COMMANDS" ]; then
+    echo "" >> $TMP_SUDOERS
+    echo "# Commands from scripts directory" >> $TMP_SUDOERS
+    echo "$SUDO_COMMANDS" >> $TMP_SUDOERS
+    echo "Found sudo commands in scripts: $SUDO_COMMANDS"
+else
+    echo "No sudo commands found in scripts directory."
+fi
 
 # Check if sudoers syntax is valid
 visudo -c -f $TMP_SUDOERS
