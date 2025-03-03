@@ -1,40 +1,47 @@
 {
   "layout": {
-    "rows": 2,
+    "rows": 3,
     "columns": 3,
     "button_spacing": 10,
     "background_color": "#2E3440",
-    "fullscreen": true
+    "fullscreen": true,
+    "hide_cursor": false
+  },
+  "display": {
+    "mode": "single",
+    "primary_display": "DSI-1",
+    "kiosk_mode": true,
+    "auto_start": true
   },
   "buttons": [
     {
-      "name": "Terminal",
+      "name": "Switch to Personal",
       "icon": "icons/terminal.png",
-      "command": "lxterminal",
-      "color": "#88C0D0",
+      "command": "@/switch_to_personal.sh",
+      "color": "#88C0D0", 
       "text_color": "#ECEFF4",
       "position": [0, 0]
     },
     {
-      "name": "Web Browser",
+      "name": "Switch to Work",
       "icon": "icons/browser.png",
-      "command": "chromium-browser",
+      "command": "@/switch_to_work.sh",
       "color": "#5E81AC",
       "text_color": "#ECEFF4",
       "position": [0, 1]
     },
     {
-      "name": "File Manager",
+      "name": "Toggle PIP",
       "icon": "icons/files.png",
-      "command": "pcmanfm",
+      "command": "@/toggle_pip.sh",
       "color": "#A3BE8C",
       "text_color": "#2E3440",
       "position": [0, 2]
     },
     {
-      "name": "System Monitor",
+      "name": "System Info",
       "icon": "icons/monitor.png",
-      "command": "lxtask",
+      "command": "echo 'System Info' && uptime && free -h",
       "color": "#B48EAD",
       "text_color": "#ECEFF4",
       "position": [1, 0]
