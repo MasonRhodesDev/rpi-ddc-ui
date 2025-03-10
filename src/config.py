@@ -1,8 +1,44 @@
 #!/usr/bin/env python3
-import json
 import os
+import json
 import sys
+import traceback
 import re
+
+def get_base_dir():
+    """Get the base directory of the application"""
+    # If running from installed location, use that path
+    if os.path.exists('/opt/desk-controller/config.json'):
+        return '/opt/desk-controller'
+    # Otherwise use the current directory (for development)
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def load_config():
+    """Load the configuration from config.json"""
+    base_dir = get_base_dir()
+    config_path = os.path.join(base_dir, 'config.json')
+    try:
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"Error: config.json not found at {config_path}")
+        print(f"Current directory: {os.getcwd()}")
+        print(f"Directory contents: {os.listdir(base_dir)}")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in {config_path}: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        traceback.print_exc()
+        sys.exit(1)
+
+def get_config_path():
+    """Get the path to the config file"""
+    config_path = '/opt/desk-controller/config.json'
+    if not os.path.exists(config_path):
+        config_path = os.path.join(get_base_dir(), 'config.json')
+    return config_path
 
 class ConfigValidator:
     def __init__(self, config_path=None):
@@ -12,7 +48,7 @@ class ConfigValidator:
                 self.config_path = '/opt/desk-controller/config.json'
             else:
                 # Otherwise use the current directory (for development)
-                self.config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../config.json')
+                self.config_path = os.path.join(get_base_dir(), 'config.json')
         else:
             self.config_path = config_path
             
@@ -122,29 +158,12 @@ class ConfigValidator:
         # Validate each button
         for i, button in enumerate(buttons):
             # Check required fields
-            if 'label' not in button:
-                self.errors.append(f"Button {i+1} is missing 'label'")
+            if 'name' not in button and 'label' not in button:
+                self.errors.append(f"Button {i+1} is missing 'name' or 'label'")
+            
+            if 'command' not in button:
+                self.errors.append(f"Button {i+1} is missing 'command'")
                 
-            if 'action' not in button:
-                self.errors.append(f"Button {i+1} is missing 'action'")
-            else:
-                # Check action type
-                valid_actions = ['command', 'url', 'script', 'shutdown', 'reboot']
-                if button['action'] not in valid_actions:
-                    self.errors.append(f"Button {i+1} has invalid action '{button['action']}'. Must be one of: {', '.join(valid_actions)}")
-                    
-                # Check command for command action (not needed for shutdown/reboot)
-                if button['action'] == 'command' and 'command' not in button:
-                    self.errors.append(f"Button {i+1} with 'command' action is missing 'command' field")
-                    
-                # Check url for url action
-                if button['action'] == 'url' and 'url' not in button:
-                    self.errors.append(f"Button {i+1} with 'url' action is missing 'url' field")
-                    
-                # Check script for script action
-                if button['action'] == 'script' and 'script' not in button:
-                    self.errors.append(f"Button {i+1} with 'script' action is missing 'script' field")
-                    
             # Check optional fields
             if 'icon' in button and not isinstance(button['icon'], str):
                 self.errors.append(f"Button {i+1} 'icon' must be a string")
@@ -152,8 +171,13 @@ class ConfigValidator:
             if 'color' in button and not self._is_valid_color(button['color']):
                 self.errors.append(f"Button {i+1} 'color' must be a valid color code (e.g., '#RRGGBB')")
                 
-            if 'confirm' in button and not isinstance(button['confirm'], bool):
-                self.errors.append(f"Button {i+1} 'confirm' must be a boolean")
+            if 'position' in button:
+                if not isinstance(button['position'], list) or len(button['position']) != 2:
+                    self.errors.append(f"Button {i+1} 'position' must be a list of two integers [row, column]")
+                elif not all(isinstance(pos, int) for pos in button['position']):
+                    self.errors.append(f"Button {i+1} 'position' values must be integers")
+                elif not (0 <= button['position'][0] < layout.get('rows', 0)) or not (0 <= button['position'][1] < layout.get('columns', 0)):
+                    self.warnings.append(f"Button {i+1} position {button['position']} is outside the grid bounds")
                 
     def _is_valid_color(self, color):
         """Check if a color code is valid"""
@@ -172,17 +196,4 @@ class ConfigValidator:
                 print(f"  - {warning}")
                 
         if not self.errors and not self.warnings:
-            print("Configuration is valid.")
-
-def main():
-    """Main function for command-line usage"""
-    validator = ConfigValidator()
-    if validator.validate_config():
-        print("Configuration is valid.")
-        return 0
-    else:
-        validator.print_report()
-        return 1
-
-if __name__ == "__main__":
-    sys.exit(main()) 
+            print("Configuration is valid.") 
