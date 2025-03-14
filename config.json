@@ -1,6 +1,6 @@
 {
   "layout": {
-    "rows": 3,
+    "rows": 2,
     "columns": 3,
     "button_spacing": 10,
     "background_color": "#2E3440",
@@ -19,7 +19,6 @@
       "label": "Switch to Personal",
       "action": "command",
       "command": "@/switch_to_personal.sh",
-      "icon": "icons/terminal.png",
       "color": "#88C0D0", 
       "text_color": "#ECEFF4",
       "position": [0, 0]
@@ -29,7 +28,6 @@
       "label": "Switch to Work",
       "action": "command",
       "command": "@/switch_to_work.sh",
-      "icon": "icons/browser.png",
       "color": "#5E81AC",
       "text_color": "#ECEFF4",
       "position": [0, 1]
@@ -39,40 +37,27 @@
       "label": "Toggle PIP",
       "action": "command",
       "command": "@/toggle_pip.sh",
-      "icon": "icons/files.png",
       "color": "#A3BE8C",
       "text_color": "#2E3440",
       "position": [0, 2]
     },
     {
-      "name": "System Info",
-      "label": "System Info",
+      "name": "P / W",
+      "label": "P / W",
       "action": "command",
-      "command": "echo 'System Info' && uptime && free -h",
-      "icon": "icons/monitor.png",
-      "color": "#B48EAD",
-      "text_color": "#ECEFF4",
+      "command": "@/p-w.sh",
+      "color": "#A3BE8C",
+      "text_color": "#2E3440",
       "position": [1, 0]
     },
     {
-      "name": "Reboot",
-      "label": "Reboot",
-      "action": "reboot",
-      "command": "sudo reboot",
-      "icon": "icons/reboot.png",
-      "color": "#BF616A",
-      "text_color": "#ECEFF4",
-      "position": [1, 1]
-    },
-    {
-      "name": "Shutdown",
-      "label": "Shutdown",
-      "action": "shutdown",
-      "command": "sudo shutdown -h now",
-      "icon": "icons/shutdown.png",
-      "color": "#D08770",
+      "name": "W / P",
+      "label": "W / P",
+      "action": "command",
+      "command": "@/w-p.sh",
+      "color": "#A3BE8C",
       "text_color": "#2E3440",
-      "position": [1, 2]
+      "position": [1, 1]
     }
   ]
 } 

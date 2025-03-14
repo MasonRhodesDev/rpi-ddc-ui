@@ -2,7 +2,7 @@
 import os
 import subprocess
 from PyQt5.QtWidgets import (QMainWindow, QGridLayout, QPushButton, QWidget, 
-                            QSizePolicy, QMessageBox, QScrollArea, QApplication)
+                            QSizePolicy, QMessageBox, QScrollArea, QApplication, QLabel, QVBoxLayout)
 from PyQt5.QtGui import QIcon, QColor, QPalette, QFont
 from PyQt5.QtCore import Qt, QSize, QEvent
 
@@ -36,6 +36,80 @@ def darken_color(hex_color, amount=20):
     
     # Convert back to hex
     return f"#{r:02x}{g:02x}{b:02x}"
+
+class WrappingButton(QWidget):
+    def __init__(self, text, parent=None):
+        super().__init__(parent)
+        
+        # Create the actual push button that will be the background
+        self.button = QPushButton(self)
+        
+        # Create content widget and its layout
+        self.content = QWidget()
+        content_layout = QVBoxLayout(self.content)
+        content_layout.setContentsMargins(4, 4, 4, 4)
+        content_layout.setSpacing(8)  # Spacing between icon and text
+        
+        # Create icon label
+        self.icon_label = QLabel()
+        self.icon_label.setAlignment(Qt.AlignCenter)
+        self.icon_label.hide()
+        
+        # Create text label
+        self.label = QLabel(text)
+        self.label.setWordWrap(True)
+        self.label.setAlignment(Qt.AlignCenter)
+        
+        # Add widgets to content layout
+        content_layout.addStretch()
+        content_layout.addWidget(self.icon_label)
+        content_layout.addWidget(self.label)
+        content_layout.addStretch()
+        
+        # Create main layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(self.button)
+        
+        # Add content widget on top of button
+        content_layout = QVBoxLayout(self.button)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.addWidget(self.content)
+        
+        # Forward the clicked signal
+        self.clicked = self.button.clicked
+    
+    def setText(self, text):
+        self.label.setText(text)
+    
+    def text(self):
+        return self.label.text()
+    
+    def setIcon(self, icon):
+        if not icon.isNull():
+            pixmap = icon.pixmap(self.iconSize())
+            self.icon_label.setPixmap(pixmap)
+            self.icon_label.show()
+        else:
+            self.icon_label.hide()
+    
+    def setIconSize(self, size):
+        self._icon_size = size
+        self.icon_label.setFixedSize(size)
+        if self.icon_label.pixmap():
+            scaled_pixmap = self.icon_label.pixmap().scaled(
+                size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.icon_label.setPixmap(scaled_pixmap)
+    
+    def iconSize(self):
+        return getattr(self, '_icon_size', QSize(32, 32))
+    
+    def setStyleSheet(self, style):
+        self.button.setStyleSheet(style)
+        super().setStyleSheet("background: transparent;")
+    
+    def setSizePolicy(self, *args, **kwargs):
+        self.button.setSizePolicy(*args, **kwargs)
 
 class DeskControllerUI(QMainWindow):
     def __init__(self, config, kiosk_mode=False, has_touch_screen=False):
@@ -196,17 +270,14 @@ class DeskControllerUI(QMainWindow):
             position = button_config.get('position', [0, 0])
             
             # Create button
-            button = QPushButton(name)
+            button = WrappingButton(name)
             button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             
             # Set button style
             button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {color};
-                    color: {text_color};
                     border-radius: {border_radius}px;
-                    font-size: {font_size}px;
-                    font-weight: bold;
                     padding: {padding}px;
                     min-height: {button_height * 0.8}px;
                     min-width: {button_width * 0.8}px;
@@ -217,10 +288,16 @@ class DeskControllerUI(QMainWindow):
                 QPushButton:pressed {{
                     background-color: {darken_color(color)};
                 }}
+                QLabel {{
+                    color: {text_color};
+                    font-size: {font_size}px;
+                    font-weight: bold;
+                    background-color: transparent;
+                }}
             """)
             
-            # Set icon if provided
-            if icon_path:
+            # Set icon if provided in config
+            if icon_path:  # This will be falsy if icon is not in config or is empty string
                 # Handle relative paths
                 if not os.path.isabs(icon_path):
                     icon_path = os.path.join(self.base_dir, icon_path)
