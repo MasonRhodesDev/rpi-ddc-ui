@@ -6,7 +6,7 @@ import traceback
 import signal
 import subprocess
 import time
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QFont, QGuiApplication, QCursor
 from PyQt5.QtCore import QTimer, QPoint, QEvent
 
@@ -49,7 +49,7 @@ def install_service():
             subprocess.run(['sudo', 'apt-get', 'update'], check=True)
             subprocess.run(['sudo', 'apt-get', 'install', '-y', 'xserver-xorg', 'x11-xserver-utils', 
                           'xinit', 'matchbox-window-manager', 'unclutter', 'xserver-xorg-legacy',
-                          'udev', 'ddcutil', 'i2c-tools', 'i2c-dev'], check=True)
+                          'udev', 'ddcutil', 'i2c-tools'], check=True)
         except subprocess.CalledProcessError as e:
             print(f"Warning: Could not install all dependencies: {e}")
             print("You may need to manually install the required packages")
@@ -318,7 +318,16 @@ Type=idle
                 print("Rebooting...")
                 subprocess.run(['sudo', 'reboot'], check=True)
             else:
-                print("Please log out manually when convenient.")
+                print("Logging out to apply group changes...")
+                try:
+                    # Find current display
+                    display = os.environ.get('DISPLAY', ':0')
+                    # Kill the X session which will force a logout
+                    subprocess.run(['sudo', 'pkill', '-f', f'xinit.*{display}'], check=True)
+                except subprocess.CalledProcessError:
+                    print("Could not automatically log out. Please log out manually.")
+                print("Please remember to reboot when convenient to apply all changes.")
+                print("You can reboot later using 'sudo reboot'")
         except:
             pass
         
