@@ -5,53 +5,55 @@ import sys
 import traceback
 import re
 
-def get_base_dir():
-    """Get the base directory of the application"""
-    # If running from installed location, use that path
-    if os.path.exists('/opt/desk-controller/config.json'):
-        return '/opt/desk-controller'
-    # Otherwise use the current directory (for development)
+def get_config_path():
+    """Resolve the config file path.
+
+    Order: $DESK_CONTROLLER_CONFIG (set by --config), the installed copy at
+    /opt/desk-controller/config.json, then config.json in the source tree.
+    """
+    env_path = os.environ.get('DESK_CONTROLLER_CONFIG')
+    if env_path:
+        return os.path.expanduser(env_path)
+    installed = '/opt/desk-controller/config.json'
+    if os.path.exists(installed):
+        return installed
+    return os.path.join(_source_dir(), 'config.json')
+
+def _source_dir():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+def get_base_dir():
+    """Get the base directory of the application (icons/ and scripts/ live here)"""
+    if os.path.exists('/opt/desk-controller/config.json'):
+        return '/opt/desk-controller'
+    return _source_dir()
+
+def _missing_config_message(config_path):
+    return (f"Error: config file not found at {config_path}\n"
+            f"Copy config.example.json to config.json and edit it, or point to one with "
+            f"--config PATH or the DESK_CONTROLLER_CONFIG environment variable.")
+
 def load_config():
-    """Load the configuration from config.json"""
-    base_dir = get_base_dir()
-    config_path = os.path.join(base_dir, 'config.json')
+    """Load the configuration from the resolved config path"""
+    config_path = get_config_path()
     try:
         with open(config_path, 'r') as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"Error: config.json not found at {config_path}")
-        print(f"Current directory: {os.getcwd()}")
-        print(f"Directory contents: {os.listdir(base_dir)}")
+        print(_missing_config_message(config_path), file=sys.stderr)
         sys.exit(1)
     except json.JSONDecodeError as e:
-        print(f"Error: Invalid JSON in {config_path}: {e}")
+        print(f"Error: Invalid JSON in {config_path}: {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print(f"Error loading config: {e}")
+        print(f"Error loading config: {e}", file=sys.stderr)
         traceback.print_exc()
         sys.exit(1)
 
-def get_config_path():
-    """Get the path to the config file"""
-    config_path = '/opt/desk-controller/config.json'
-    if not os.path.exists(config_path):
-        config_path = os.path.join(get_base_dir(), 'config.json')
-    return config_path
-
 class ConfigValidator:
     def __init__(self, config_path=None):
-        if config_path is None:
-            # If running from installed location, use that path
-            if os.path.exists('/opt/desk-controller/config.json'):
-                self.config_path = '/opt/desk-controller/config.json'
-            else:
-                # Otherwise use the current directory (for development)
-                self.config_path = os.path.join(get_base_dir(), 'config.json')
-        else:
-            self.config_path = config_path
-            
+        self.config_path = config_path if config_path is not None else get_config_path()
+
         self.errors = []
         self.warnings = []
     
@@ -63,7 +65,7 @@ class ConfigValidator:
         """Validate the configuration file"""
         # Check if config file exists
         if not os.path.exists(self.config_path):
-            self.errors.append(f"Configuration file '{self.config_path}' not found")
+            self.errors.append(_missing_config_message(self.config_path))
             return False
             
         # Load config

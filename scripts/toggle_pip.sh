@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Monitor serial number
-MONITOR=HSRTS63
+. "$(dirname "${BASH_SOURCE[0]}")/_monitors.sh"
+MONITOR="$DESK_PRIMARY_SN"
 
 # State file to track PIP mode status
 STATE_FILE=~/.pip_state_${MONITOR}
