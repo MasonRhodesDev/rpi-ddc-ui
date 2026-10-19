@@ -153,7 +153,7 @@ needs_root_rights=no"""
         xinitrc_content = f"""#!/bin/sh
 
 # Debug logging
-exec 1> /home/mason/.xinitrc.log 2>&1
+exec 1> "$HOME/.xinitrc.log" 2>&1
 
 echo "Starting .xinitrc at $(date)"
 
@@ -349,9 +349,13 @@ def main():
     parser.add_argument('--touch', action='store_true', help='Force touch screen mode')
     parser.add_argument('--no-display-check', action='store_true', help='Skip display server check')
     parser.add_argument('--install-service', action='store_true', help='Install as kiosk service')
+    parser.add_argument('--config', metavar='PATH', help='Path to config.json (default: $DESK_CONTROLLER_CONFIG, then /opt/desk-controller/config.json, then ./config.json)')
     parser.add_argument('--dev', action='store_true', help='Run in development mode (equivalent to --no-service-check)')
     args = parser.parse_args()
     
+    if args.config:
+        os.environ['DESK_CONTROLLER_CONFIG'] = os.path.abspath(args.config)
+
     # Development mode is equivalent to --no-service-check
     if args.dev:
         args.no_service_check = True
@@ -371,7 +375,7 @@ def main():
         # Validate configuration before starting
         validator = ConfigValidator()
         if not validator.validate_config():
-            print("Configuration validation failed. Please check your config.json file.")
+            print("Configuration validation failed. Please check your config file (see config.example.json).")
             validator.print_report()
             return 1
         
