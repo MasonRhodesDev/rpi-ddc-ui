@@ -1,7 +1,3 @@
-# Sourced by the monitor scripts. Not meant to be run directly.
-# Reads monitor serial numbers from scripts/monitors.env (gitignored; copy
-# scripts/monitors.env.example) or from the environment. Find your serials with:
-#   sudo ddcutil detect
 _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _env="${DESK_MONITORS_ENV:-$_dir/monitors.env}"
 if [ -f "$_env" ]; then

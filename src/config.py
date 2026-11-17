@@ -6,11 +6,6 @@ import traceback
 import re
 
 def get_config_path():
-    """Resolve the config file path.
-
-    Order: $DESK_CONTROLLER_CONFIG (set by --config), the installed copy at
-    /opt/desk-controller/config.json, then config.json in the source tree.
-    """
     env_path = os.environ.get('DESK_CONTROLLER_CONFIG')
     if env_path:
         return os.path.expanduser(env_path)
@@ -23,7 +18,6 @@ def _source_dir():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def get_base_dir():
-    """Get the base directory of the application (icons/ and scripts/ live here)"""
     if os.path.exists('/opt/desk-controller/config.json'):
         return '/opt/desk-controller'
     return _source_dir()
@@ -34,7 +28,6 @@ def _missing_config_message(config_path):
             f"--config PATH or the DESK_CONTROLLER_CONFIG environment variable.")
 
 def load_config():
-    """Load the configuration from the resolved config path"""
     config_path = get_config_path()
     try:
         with open(config_path, 'r') as f:
@@ -58,17 +51,13 @@ class ConfigValidator:
         self.warnings = []
     
     def validate_config(self):
-        """Validate the configuration file"""
         return self.validate()
         
     def validate(self):
-        """Validate the configuration file"""
-        # Check if config file exists
         if not os.path.exists(self.config_path):
             self.errors.append(_missing_config_message(self.config_path))
             return False
             
-        # Load config
         try:
             with open(self.config_path, 'r') as f:
                 config = json.load(f)
@@ -79,29 +68,22 @@ class ConfigValidator:
             self.errors.append(f"Error reading configuration file: {e}")
             return False
             
-        # Check required sections
         required_sections = ['layout', 'buttons']
         for section in required_sections:
             if section not in config:
                 self.errors.append(f"Missing required section '{section}' in configuration")
                 return False
                 
-        # Validate layout
         self._validate_layout(config.get('layout', {}))
         
-        # Validate display if present
         if 'display' in config:
             self._validate_display(config.get('display', {}))
             
-        # Validate buttons
         self._validate_buttons(config.get('buttons', []), config.get('layout', {}))
         
-        # Return validation result
         return len(self.errors) == 0
         
     def _validate_layout(self, layout):
-        """Validate layout configuration"""
-        # Check required fields
         if 'rows' not in layout:
             self.errors.append("Missing 'rows' in layout configuration")
         elif not isinstance(layout['rows'], int) or layout['rows'] < 1:
@@ -112,7 +94,6 @@ class ConfigValidator:
         elif not isinstance(layout['columns'], int) or layout['columns'] < 1:
             self.errors.append("'columns' must be a positive integer")
             
-        # Check optional fields
         if 'fullscreen' in layout and not isinstance(layout['fullscreen'], bool):
             self.errors.append("'fullscreen' must be a boolean")
             
@@ -123,50 +104,39 @@ class ConfigValidator:
             self.errors.append("'background_color' must be a valid color code (e.g., '#RRGGBB')")
             
     def _validate_display(self, display):
-        """Validate display configuration"""
-        # Check mode
         if 'mode' in display:
             valid_modes = ['single', 'multi']
             if display['mode'] not in valid_modes:
                 self.errors.append(f"Invalid display mode '{display['mode']}'. Must be one of: {', '.join(valid_modes)}")
                 
-        # Check kiosk mode
         if 'kiosk_mode' in display and not isinstance(display['kiosk_mode'], bool):
             self.errors.append("'kiosk_mode' must be a boolean")
             
-        # Check auto start
         if 'auto_start' in display and not isinstance(display['auto_start'], bool):
             self.errors.append("'auto_start' must be a boolean")
             
-        # Check primary display
         if 'primary_display' in display and not isinstance(display['primary_display'], str):
             self.errors.append("'primary_display' must be a string")
             
     def _validate_buttons(self, buttons, layout):
-        """Validate buttons configuration"""
         if not isinstance(buttons, list):
             self.errors.append("'buttons' must be a list")
             return
             
-        # Check if we have layout information
         max_buttons = 0
         if 'rows' in layout and 'columns' in layout:
             max_buttons = layout['rows'] * layout['columns']
             
-        # Check number of buttons
         if max_buttons > 0 and len(buttons) > max_buttons:
             self.warnings.append(f"Number of buttons ({len(buttons)}) exceeds grid capacity ({max_buttons})")
             
-        # Validate each button
         for i, button in enumerate(buttons):
-            # Check required fields
             if 'name' not in button and 'label' not in button:
                 self.errors.append(f"Button {i+1} is missing 'name' or 'label'")
             
             if 'command' not in button:
                 self.errors.append(f"Button {i+1} is missing 'command'")
                 
-            # Check optional fields
             if 'icon' in button and not isinstance(button['icon'], str):
                 self.errors.append(f"Button {i+1} 'icon' must be a string")
                 
@@ -182,11 +152,9 @@ class ConfigValidator:
                     self.warnings.append(f"Button {i+1} position {button['position']} is outside the grid bounds")
                 
     def _is_valid_color(self, color):
-        """Check if a color code is valid"""
         return isinstance(color, str) and re.match(r'^#[0-9A-Fa-f]{6}$', color) is not None
         
     def print_report(self):
-        """Print validation report"""
         if self.errors:
             print("Configuration errors:")
             for error in self.errors:
