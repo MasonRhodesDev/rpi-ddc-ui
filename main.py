@@ -10,23 +10,18 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QFont, QGuiApplication, QCursor
 from PyQt5.QtCore import QTimer, QPoint, QEvent
 
-# Force the use of X11 instead of Wayland
 os.environ["QT_QPA_PLATFORM"] = "xcb"
 
-# Add the current directory to the path so we can import our modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Import our modules
 from src.config import load_config, get_config_path, ConfigValidator
 from src.system import detect_touch_screen
 from src.gui import DeskControllerUI
 
-# Global application reference
 app = None
 window = None
 
 def signal_handler(sig, frame):
-    """Handle keyboard interrupts gracefully"""
     print("\nKeyboard interrupt received. Shutting down...")
     if app:
         app.quit()
@@ -34,16 +29,13 @@ def signal_handler(sig, frame):
         sys.exit(0)
 
 def install_service():
-    """Install the application as a kiosk service with auto-start on boot"""
     try:
         print("Installing desk-controller as a kiosk service with auto-start on boot...")
         
-        # Get the current script's absolute path
         script_path = os.path.abspath(__file__)
         base_dir = os.path.dirname(script_path)
         current_user = os.getenv('USER', 'pi')
         
-        # Install dependencies for kiosk mode
         print("Installing dependencies for kiosk mode...")
         try:
             subprocess.run(['sudo', 'apt-get', 'update'], check=True)
@@ -54,7 +46,6 @@ def install_service():
             print(f"Warning: Could not install all dependencies: {e}")
             print("You may need to manually install the required packages")
 
-        # Create udev rule for TTY devices
         print("Creating udev rules for TTY devices...")
         udev_rule = 'KERNEL=="tty[0-9]*", MODE="0666"\n'
         udev_file = '/etc/udev/rules.d/99-tty.rules'
@@ -63,17 +54,14 @@ def install_service():
             f.write(udev_rule)
         subprocess.run(['sudo', 'cp', '/tmp/99-tty.rules', udev_file], check=True)
         
-        # Create udev rule for DRM devices
         drm_rule = 'SUBSYSTEM=="drm", MODE="0666"\n'
         with open('/tmp/99-drm.rules', 'w') as f:
             f.write(drm_rule)
         subprocess.run(['sudo', 'cp', '/tmp/99-drm.rules', '/etc/udev/rules.d/99-drm.rules'], check=True)
         
-        # Reload udev rules
         subprocess.run(['sudo', 'udevadm', 'control', '--reload'], check=True)
         subprocess.run(['sudo', 'udevadm', 'trigger'], check=True)
 
-        # Add user to required groups
         print("Adding user to required groups...")
         groups = ['tty', 'video', 'input', 'render', 'dialout']
         for group in groups:
@@ -82,19 +70,16 @@ def install_service():
             except subprocess.CalledProcessError as e:
                 print(f"Warning: Could not add user to group {group}: {e}")
 
-        # Check available video drivers
         try:
             print("Checking available video drivers...")
             drivers = subprocess.check_output(['find', '/usr/lib/xorg/modules/drivers/', '-name', '*.so'])
             print(f"Available video drivers: {drivers.decode()}")
             
-            # Try to detect the graphics hardware
             lspci = subprocess.run(['lspci'], capture_output=True, text=True)
             print(f"Graphics hardware:\n{lspci.stdout}")
         except Exception as e:
             print(f"Warning: Could not check video drivers: {e}")
 
-        # Install additional video drivers
         try:
             print("Installing additional video drivers...")
             subprocess.run(['sudo', 'apt-get', 'install', '-y', 
@@ -103,7 +88,6 @@ def install_service():
         except subprocess.CalledProcessError as e:
             print(f"Warning: Could not install video drivers: {e}")
 
-        # Updated X server configuration for Raspberry Pi
         xorg_conf = """Section "ServerFlags"
     Option "DontVTSwitch" "true"
     Option "DontZap"      "true"
@@ -134,22 +118,18 @@ Section "Device"
 EndSection
 """
         
-        # Create X configuration directory
         subprocess.run(['sudo', 'mkdir', '-p', '/etc/X11/xorg.conf.d'], check=True)
         
-        # Write X configuration
         with open('/tmp/99-kiosk.conf', 'w') as f:
             f.write(xorg_conf)
         subprocess.run(['sudo', 'cp', '/tmp/99-kiosk.conf', '/etc/X11/xorg.conf.d/99-kiosk.conf'], check=True)
 
-        # Configure X wrapper
         xwrapper_content = """allowed_users=anybody
 needs_root_rights=no"""
         with open('/tmp/Xwrapper.config', 'w') as f:
             f.write(xwrapper_content)
         subprocess.run(['sudo', 'cp', '/tmp/Xwrapper.config', '/etc/X11/Xwrapper.config'], check=True)
         
-        # Updated .xinitrc content with touch screen resolution handling
         xinitrc_content = f"""#!/bin/sh
 
 # Debug logging
@@ -253,7 +233,6 @@ done
             f.write(xinitrc_content)
         os.chmod(xinitrc_file, 0o755)
         
-        # Add to .bashrc
         bashrc_content = """
 # Auto-start X on TTY1
 if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
@@ -264,7 +243,6 @@ fi
         with open(os.path.expanduser('~/.bashrc'), 'a') as f:
             f.write(bashrc_content)
         
-        # Set up auto-login
         print("Setting up auto-login on TTY1...")
         getty_override_dir = '/etc/systemd/system/getty@tty1.service.d'
         subprocess.run(['sudo', 'mkdir', '-p', getty_override_dir], check=True)
@@ -278,10 +256,8 @@ Type=idle
             f.write(autologin_content)
         subprocess.run(['sudo', 'cp', '/tmp/override.conf', f'{getty_override_dir}/override.conf'], check=True)
 
-        # Enable I2C interface
         print("Enabling I2C interface...")
         try:
-            # Add i2c-dev to /etc/modules
             if not os.path.exists('/etc/modules-load.d'):
                 subprocess.run(['sudo', 'mkdir', '-p', '/etc/modules-load.d'], check=True)
             
@@ -289,10 +265,8 @@ Type=idle
                 f.write('i2c-dev\n')
             subprocess.run(['sudo', 'cp', '/tmp/i2c.conf', '/etc/modules-load.d/i2c.conf'], check=True)
             
-            # Enable I2C in raspi-config
             subprocess.run(['sudo', 'raspi-config', 'nonint', 'do_i2c', '0'], check=True)
             
-            # Add i2c to bootconfig
             with open('/boot/config.txt', 'r') as f:
                 bootconfig = f.read()
             
@@ -311,7 +285,6 @@ Type=idle
         print("\nNOTE: You need to log out and back in for the group changes to take effect.")
         print("      After that, reboot the system to start in kiosk mode.")
         
-        # Ask if the user wants to log out now
         try:
             response = input("Would you like to reboot now to apply the changes? (y/n): ")
             if response.lower() in ['y', 'yes']:
@@ -320,9 +293,7 @@ Type=idle
             else:
                 print("Logging out to apply group changes...")
                 try:
-                    # Find current display
                     display = os.environ.get('DISPLAY', ':0')
-                    # Kill the X session which will force a logout
                     subprocess.run(['sudo', 'pkill', '-f', f'xinit.*{display}'], check=True)
                 except subprocess.CalledProcessError:
                     print("Could not automatically log out. Please log out manually.")
@@ -343,7 +314,6 @@ Type=idle
 def main():
     global app, window
     
-    # Parse command-line arguments
     parser = argparse.ArgumentParser(description='Desk Controller')
     parser.add_argument('--kiosk', action='store_true', help='Run in kiosk mode')
     parser.add_argument('--touch', action='store_true', help='Force touch screen mode')
@@ -356,72 +326,54 @@ def main():
     if args.config:
         os.environ['DESK_CONTROLLER_CONFIG'] = os.path.abspath(args.config)
 
-    # Development mode is equivalent to --no-service-check
     if args.dev:
         args.no_service_check = True
     
-    # Check if we should install the service
     if args.install_service:
         install_service()
         return 0
     
-    # Set up signal handler for keyboard interrupts (Ctrl+C)
     signal.signal(signal.SIGINT, signal_handler)
     
     try:        
-        # Debug: Print which platform we're using
         print(f"Using platform: {QGuiApplication.platformName()}")
         
-        # Validate configuration before starting
         validator = ConfigValidator()
         if not validator.validate_config():
             print("Configuration validation failed. Please check your config file (see config.example.json).")
             validator.print_report()
             return 1
         
-        # Create application
         app = QApplication(sys.argv)
         
-        # Set up a timer to process Python events, including signals
-        # This ensures that SIGINT can be caught even when Qt's event loop is running
         timer = QTimer()
-        timer.start(500)  # Check every 500ms
-        timer.timeout.connect(lambda: None)  # Just wake up the event loop
+        timer.start(500)
+        timer.timeout.connect(lambda: None)
         
-        # Set application font
         font_family = "Arial"
         font_size = 12
         font = QFont(font_family, font_size)
         app.setFont(font)
         
-        # Load config
         config = load_config()
         
-        # Check if kiosk mode is enabled in config or command line
         kiosk_mode = args.kiosk or config.get('display', {}).get('kiosk_mode', False)
         
-        # Detect touch screen or use command line flag
         has_touch_screen = args.touch or detect_touch_screen()
         
-        # Create and show the UI
         window = DeskControllerUI(config, kiosk_mode=kiosk_mode, has_touch_screen=has_touch_screen)
         
-        # Configure cursor confinement for touch screen mode
         if has_touch_screen:
-            # Remove unclutter if running (we want to show and confine cursor)
             try:
                 subprocess.run(['pkill', 'unclutter'], check=True)
             except subprocess.CalledProcessError:
-                pass  # unclutter wasn't running
+                pass
             
-            # Ensure cursor is visible
             window.setCursor(Qt.ArrowCursor)
             
-            # Confine cursor to window
             window.setMouseTracking(True)
             window.grabMouse()
             
-            # Prevent cursor from leaving the window
             def confine_cursor(event):
                 if event.type() == QEvent.MouseMove:
                     pos = event.pos()
@@ -434,15 +386,12 @@ def main():
                 return False
             
             window.installEventFilter(window)
-            window.event_filters = [confine_cursor]  # Store filter to prevent garbage collection
+            window.event_filters = [confine_cursor]
         
-        # Start the application event loop
         print("Application started. Press Ctrl+C to exit.")
         
-        # Install event filter to catch keyboard events at application level
         app.installEventFilter(window)
         
-        # Run the application
         return app.exec_()
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received. Shutting down...")
@@ -455,5 +404,4 @@ def main():
         return 1
 
 if __name__ == "__main__":
-    # Use the return value from main() as the exit code
     sys.exit(main()) 

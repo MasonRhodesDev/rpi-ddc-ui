@@ -12,7 +12,7 @@ The input codes in the scripts (`0x0f` for DisplayPort, `0x11` for HDMI, `0xE9`/
 
 ## Configure
 
-1. `cp config.example.json config.json` and edit it. Options are described in [CONFIG.md](CONFIG.md). `config.json` is gitignored.
+1. `cp config.example.json config.json` and edit it. `config.json` is gitignored.
 2. `cp scripts/monitors.env.example scripts/monitors.env` and put your monitor serial numbers in it (`sudo ddcutil detect` lists them). This file is gitignored too. You can instead export `DESK_PRIMARY_SN` and `DESK_SECONDARY_SN`, or point `DESK_MONITORS_ENV` at another file.
 
 The config file is looked up in this order: `--config PATH`, the `DESK_CONTROLLER_CONFIG` environment variable, `/opt/desk-controller/config.json`, then `config.json` next to `main.py`. If none exists the program exits with an error naming the path it tried.
